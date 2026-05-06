@@ -1,0 +1,78 @@
+pipeline {
+    agent any
+
+    environment {
+        IMAGE_NAME = "my-app"
+        CONTAINER_NAME = "my-container"
+    }
+
+    stages {
+
+        stage('Clone Code') {
+            steps {
+                sh '''
+                rm -rf * .git || true
+                git clone https://github.com/dhruvijain207/devops-project.git .
+                '''
+            }
+        }
+
+        stage('Check Files') {
+            steps {
+                sh 'ls -la'
+            }
+        }
+
+        stage('Build Docker Image') {
+            steps {
+                sh '''
+                docker build -t $IMAGE_NAME .
+                '''
+            }
+        }
+
+        stage('Remove Old Container') {
+            steps {
+                sh '''
+                docker stop $CONTAINER_NAME || true
+                docker rm $CONTAINER_NAME || true
+                '''
+            }
+        }
+
+        stage('Run Docker Container') {
+            steps {
+                sh '''
+                docker run -d \
+                --name $CONTAINER_NAME \
+                -p 3000:3000 \
+                $IMAGE_NAME
+                '''
+            }
+        }
+
+        stage('Clean Docker') {
+            steps {
+                sh '''
+                docker image prune -f
+                '''
+            }
+        }
+
+        stage('Show Running Containers') {
+            steps {
+                sh 'docker ps'
+            }
+        }
+    }
+
+    post {
+        success {
+            echo 'Pipeline executed successfully!'
+        }
+
+        failure {
+            echo 'Pipeline failed!'
+        }
+    }
+}
